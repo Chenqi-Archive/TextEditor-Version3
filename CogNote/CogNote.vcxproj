@@ -164,11 +164,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="view\widget\ListViewFixed.h" />
+    <ClInclude Include="view\widget\SplitView.h" />
     <ClInclude Include="view\widget\TextInfoView.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="view\widget\ListViewFixed.cpp" />
+    <ClCompile Include="view\widget\SplitView.cpp" />
     <ClCompile Include="view\widget\TextInfoView.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

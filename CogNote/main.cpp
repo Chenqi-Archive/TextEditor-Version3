@@ -1,9 +1,11 @@
 #include "view/widget/TextInfoView.h"
 #include "view/widget/ListViewFixed.h"
+#include "view/widget/SplitView.h"
 
 #include "WndDesign/window/Global.h"
 #include "WndDesign/widget/TitleBarFrame.h"
 #include "WndDesign/widget/ScrollBox.h"
+#include "WndDesign/frame/PaddingFrame.h"
 
 
 using namespace WndDesign;
@@ -14,7 +16,7 @@ struct MainFrameStyle : public TitleBarFrame::Style {
 		width.normal(800px).max(100pct);
 		height.normal(500px).max(100pct);
 		position.setHorizontalCenter().setVerticalCenter();
-		border.width(5px).color(Color::CadetBlue);
+		border.width(4px).color(Color::CadetBlue);
 		title.assign(L"Test");
 		title_format.font.size(20px);
 	}
@@ -73,8 +75,23 @@ int main() {
 	global.AddWnd(
 		new TitleBarFrame{
 			MainFrameStyle(),
-			new ScrollBox{
-				new MyListView()
+			new SplitView<Horizontal>{
+				SplitLine(10px, Color::Aquamarine, 200px),
+				new SplitView<Vertical>{
+					SplitLine(5px, Color::BurlyWood, 30pct),
+					new ScrollBox{
+						new MyListView()
+					},
+					new ScrollBox{
+						new MyListView()
+					}
+				},
+				new ScrollBox{
+					new PaddingFrame{
+						Padding(50px, 30px),
+						new MyListView()
+					}
+				}
 			}
 		}
 	);
