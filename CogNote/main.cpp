@@ -75,7 +75,7 @@ int main() {
 	global.AddWnd(
 		new TitleBarFrame{
 			MainFrameStyle(),
-			new SplitView<Horizontal>{
+			new SolidColorBackground<SplitView<Horizontal>, 0x1E1E1E>{
 				SplitLine(10px, Color::Aquamarine, 200px),
 				new SplitView<Vertical>{
 					SplitLine(5px, Color::BurlyWood, 30pct),
