@@ -1,6 +1,7 @@
 #include "view/widget/TextInfoView.h"
 #include "view/widget/ListViewFixed.h"
 #include "view/widget/SplitView.h"
+#include "view/widget/PairView.h"
 
 #include "WndDesign/window/Global.h"
 #include "WndDesign/widget/TitleBarFrame.h"
@@ -87,11 +88,21 @@ int main() {
 					}
 				},
 				new ScrollBox{
-					new PaddingFrame{
-						Padding(50px, 30px),
-						new MyListView()
+					new PairView<Vertical>{
+						new SolidColorBackground<PaddingFrame<Assigned, Auto>, Color::DarkGreen>{
+							Padding(50px, 30px),
+							new MyListView()
+						},
+						new SolidColorBackground<PaddingFrame<Assigned, Auto>, Color::DarkGoldenrod>{
+							Padding(50px, 30px),
+							new MyListView()
+						}
 					}
 				}
+			},
+			new PairView<Horizontal>{
+				new Button<Auto, Assigned>(50px),
+				new Button<Auto, Assigned>(50px),
 			}
 		}
 	);
