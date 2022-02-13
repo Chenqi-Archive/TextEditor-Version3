@@ -163,17 +163,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="view\widget\ListViewFixed.h" />
-    <ClInclude Include="view\widget\PairView.h" />
-    <ClInclude Include="view\widget\SplitView.h" />
-    <ClInclude Include="view\widget\TextInfoView.h" />
+    <ClInclude Include="view\BlockListView.h" />
+    <ClInclude Include="view\BlockTextView.h" />
+    <ClInclude Include="view\BlockView.h" />
+    <ClInclude Include="view\RootFrame.h" />
+    <ClInclude Include="view\widget\DropDownButton.h" />
+    <ClInclude Include="view\widget\DropDownFrame.h" />
+    <ClInclude Include="view\base\ListViewFixed.h" />
+    <ClInclude Include="view\base\PairView.h" />
+    <ClInclude Include="view\base\SplitView.h" />
+    <ClInclude Include="view\base\TextInfoView.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="view\widget\ListViewFixed.cpp" />
-    <ClCompile Include="view\widget\PairView.cpp" />
-    <ClCompile Include="view\widget\SplitView.cpp" />
-    <ClCompile Include="view\widget\TextInfoView.cpp" />
+    <ClCompile Include="view\BlockListView.cpp" />
+    <ClCompile Include="view\BlockTextView.cpp" />
+    <ClCompile Include="view\BlockView.cpp" />
+    <ClCompile Include="view\base\ListViewFixed.cpp" />
+    <ClCompile Include="view\base\PairView.cpp" />
+    <ClCompile Include="view\base\SplitView.cpp" />
+    <ClCompile Include="view\base\TextInfoView.cpp" />
+    <ClCompile Include="view\RootFrame.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,16 +15,34 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="view\widget\TextInfoView.h">
+    <ClInclude Include="view\base\TextInfoView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\widget\ListViewFixed.h">
+    <ClInclude Include="view\base\ListViewFixed.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\widget\SplitView.h">
+    <ClInclude Include="view\base\SplitView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\widget\PairView.h">
+    <ClInclude Include="view\base\PairView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\BlockView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\BlockTextView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\BlockListView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\widget\DropDownButton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\widget\DropDownFrame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="view\RootFrame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,16 +50,28 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\widget\TextInfoView.cpp">
+    <ClCompile Include="view\base\TextInfoView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\widget\ListViewFixed.cpp">
+    <ClCompile Include="view\base\ListViewFixed.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\widget\SplitView.cpp">
+    <ClCompile Include="view\base\SplitView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\widget\PairView.cpp">
+    <ClCompile Include="view\base\PairView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\BlockView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\BlockTextView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\BlockListView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="view\RootFrame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
