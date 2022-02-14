@@ -3,7 +3,7 @@
 #include "view/base/SplitView.h"
 #include "view/base/PairView.h"
 
-#include "view/RootFrame.h"
+#include "view/RootBlockView.h"
 
 #include "WndDesign/window/Global.h"
 #include "WndDesign/widget/TitleBarFrame.h"
@@ -100,7 +100,7 @@ int main() {
 				new ScrollBox{
 					new PaddingFrame{
 						Padding(50px, 30px),
-						new RootFrame()
+						new RootBlockView()
 					}
 				}
 			},

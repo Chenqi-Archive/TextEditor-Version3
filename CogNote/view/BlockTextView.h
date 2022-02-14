@@ -6,30 +6,69 @@
 
 BEGIN_NAMESPACE(WndDesign)
 
+class BlockView;
+
 
 class BlockTextView : public WndType<Assigned, Auto> {
-public:
-	BlockTextView();
+private:
+	friend class BlockView;
+	friend class RootBlockView;
+
+private:
+	BlockTextView(BlockView& block_view);
 	~BlockTextView() {}
 
+	// BlockView
+private:
+	BlockView& block_view;
+
 	// text
-protected:
+private:
+	using HitTestInfo = TextBlockHitTestInfo;
+private:
 	std::wstring text;
 	TextBlock text_block;
-protected:
+private:
 	void TextUpdated();
 
 	// layout
-protected:
+private:
 	float width = 0.0f;
-protected:
+private:
 	Size UpdateLayout();
-protected:
+private:
 	virtual Size OnSizeRefUpdate(Size size_ref) override;
 
 	// paint
-protected:
+private:
 	virtual void OnDraw(FigureQueue& figure_queue, Rect draw_region) override;
+
+	// caret
+private:
+	friend void BlinkCaret();
+private:
+	static void RedrawCaretRegion();
+	static void ShowCaret();
+	static void HideCaret();
+	static void ActivateCaret();
+	static void BlinkCaret();
+private:
+	void SetCaretFocus(Rect region);
+	void SetCaret(const HitTestInfo& info);
+	void SetCaret(Point point);
+
+	// selection
+private:
+	static void RedrawSelectionRegion();
+private:
+	void UpdateSelectionRegion();
+	void DoSelect(Point point);
+
+	// message
+private:
+	virtual void OnMouseMsg(MouseMsg msg) override;
+	virtual void OnKeyMsg(KeyMsg msg) override;
+	virtual void OnNotifyMsg(NotifyMsg msg) override;
 };
 
 

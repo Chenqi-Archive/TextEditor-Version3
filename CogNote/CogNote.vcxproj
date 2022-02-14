@@ -166,7 +166,7 @@
     <ClInclude Include="view\BlockListView.h" />
     <ClInclude Include="view\BlockTextView.h" />
     <ClInclude Include="view\BlockView.h" />
-    <ClInclude Include="view\RootFrame.h" />
+    <ClInclude Include="view\RootBlockView.h" />
     <ClInclude Include="view\widget\DropDownButton.h" />
     <ClInclude Include="view\widget\DropDownFrame.h" />
     <ClInclude Include="view\base\ListViewFixed.h" />
@@ -183,7 +183,7 @@
     <ClCompile Include="view\base\PairView.cpp" />
     <ClCompile Include="view\base\SplitView.cpp" />
     <ClCompile Include="view\base\TextInfoView.cpp" />
-    <ClCompile Include="view\RootFrame.cpp" />
+    <ClCompile Include="view\RootBlockView.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

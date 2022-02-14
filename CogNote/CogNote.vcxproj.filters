@@ -42,7 +42,7 @@
     <ClInclude Include="view\widget\DropDownFrame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="view\RootFrame.h">
+    <ClInclude Include="view\RootBlockView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -71,7 +71,7 @@
     <ClCompile Include="view\BlockListView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="view\RootFrame.cpp">
+    <ClCompile Include="view\RootBlockView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
