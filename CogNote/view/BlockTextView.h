@@ -12,7 +12,7 @@ class BlockView;
 
 class BlockTextView : public WndType<Assigned, Auto> {
 public:
-	BlockTextView(BlockView& block_view);
+	BlockTextView(BlockView& block_view, std::wstring text);
 	~BlockTextView() {}
 
 	// context
@@ -90,6 +90,7 @@ public:
 	// input
 private:
 	void Insert(wchar ch);
+	void Insert(std::wstring str);
 	void Delete(bool is_backspace);
 	void OnImeBegin();
 	void OnImeString();

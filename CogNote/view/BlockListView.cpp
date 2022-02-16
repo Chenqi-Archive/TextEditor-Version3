@@ -86,22 +86,27 @@ void BlockListView::Insert(wchar ch) {
 
 }
 
+void BlockListView::Insert(std::vector<std::wstring> text) {
+
+}
+
 void BlockListView::Delete() {
 	if (!HasSelection()) { return; }
 	EraseChild(selection_range_begin, selection_range_end - selection_range_begin);
 }
 
-void BlockListView::InsertFront() {
-	InsertChild(0, new BlockView(block_view.GetRoot(), block_view));
-	GetChild(0).SetCaret();
+void BlockListView::InsertNewFront() {
+	InsertChild(0, new BlockView(block_view));
+	GetChild(0).SetCaret(0);
 }
 
-void BlockListView::InsertBack() {
-
-}
-
-void BlockListView::InsertAfter(BlockView& child) {
-
+void BlockListView::InsertAt(size_t index, std::vector<std::wstring> text, size_t caret_pos) {
+	std::vector<child_ptr> children; children.reserve(text.size());
+	for (auto it = text.begin(); it != text.end(); ++it) {
+		children.emplace_back(new BlockView(block_view, std::move(*it)));
+	}
+	InsertChild(index, std::move(children));
+	GetChild(index + text.size() - 1).SetCaret(caret_pos);
 }
 
 void BlockListView::Cut() {

@@ -11,9 +11,9 @@
 BEGIN_NAMESPACE(WndDesign)
 
 
-BlockView::BlockView(RootBlockView& root, BlockView& parent) : PairView{
+BlockView::BlockView(RootBlockView& root, BlockView& parent, std::wstring text) : PairView{
 	new DropDownFrame{
-		text_view = new BlockTextView(*this)
+		text_view = new BlockTextView(*this, text)
 	},
 	new PaddingFrame{
 		Padding(10px, 0, 0, 0),
@@ -22,7 +22,7 @@ BlockView::BlockView(RootBlockView& root, BlockView& parent) : PairView{
 }, root(root), parent(parent) {
 }
 
-void BlockView::SetCaret() { text_view->SetCaret(0); }
+void BlockView::SetCaret(size_t pos) { text_view->SetCaret(pos); }
 
 void BlockView::ClearSelection() {
 	BlockListView::ClearSelection();
@@ -62,7 +62,7 @@ void BlockView::SelectListView(Point point) {
 void BlockView::DoSelect(Point point) {
 	if (IsSelfSelectionBegin()) {
 		if (HitTestTextView(point)) {
-			SelectTextView(point); 
+			SelectTextView(point);
 		} else {
 			SelectSelf();
 		}
@@ -75,7 +75,17 @@ void BlockView::DoSelect(Point point) {
 	}
 }
 
-void BlockView::InsertFront() { list_view->InsertFront(); }
+void BlockView::InsertNewFront() {
+	list_view->InsertNewFront();
+}
+
+void BlockView::InsertAfter(BlockView& child, std::vector<std::wstring> text, size_t caret_pos) {
+	list_view->InsertAfter(child, text, caret_pos);
+}
+
+void BlockView::InsertAfterSelf(std::vector<std::wstring> text, size_t caret_pos) {
+	IsRootBlock() ? list_view->InsertAt(0, text, caret_pos) : parent.InsertAfter(*this, text, caret_pos);
+}
 
 
 END_NAMESPACE(WndDesign)

@@ -45,11 +45,12 @@ public:
 	// input
 private:
 	void Insert(wchar ch);
+	void Insert(std::vector<std::wstring> text);
 	void Delete();
 public:
-	void InsertFront();
-	void InsertBack();
-	void InsertAfter(BlockView& child);
+	void InsertNewFront();
+	void InsertAt(size_t index, std::vector<std::wstring> text, size_t caret_pos);
+	void InsertAfter(BlockView& child, std::vector<std::wstring> text, size_t caret_pos) { InsertAt(GetChildIndex(child) + 1, text, caret_pos); }
 
 	// clipboard
 private:

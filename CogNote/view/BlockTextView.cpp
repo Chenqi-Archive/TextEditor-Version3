@@ -7,6 +7,8 @@
 #include "WndDesign/figure/shape.h"
 #include "WndDesign/system/clipboard.h"
 
+#include "../common/string_helper.h"
+
 
 BEGIN_NAMESPACE(WndDesign)
 
@@ -63,7 +65,8 @@ MouseTracker mouse_tracker;
 END_NAMESPACE(Anonymous)
 
 
-BlockTextView::BlockTextView(BlockView& block_view) : block_view(block_view), text(), text_block(style, text) {
+BlockTextView::BlockTextView(BlockView& block_view, std::wstring text) :
+	block_view(block_view), text(text), text_block(style, text) {
 	cursor = Cursor::Text;
 	ime.Enable(*this);
 	word_break_iterator.SetText(text);
@@ -258,6 +261,16 @@ void BlockTextView::Insert(wchar ch) {
 	}
 }
 
+void BlockTextView::Insert(std::wstring str) {
+	if (HasSelection()) {
+		ReplaceText(selection_range_begin, selection_range_end - selection_range_begin, str);
+		SetCaret(selection_range_begin + str.length());
+	} else {
+		InsertText(caret_position, str);
+		SetCaret(caret_position + str.length());
+	}
+}
+
 void BlockTextView::Delete(bool is_backspace) {
 	if (HasSelection()) {
 		DeleteText(selection_range_begin, selection_range_end - selection_range_begin);
@@ -314,6 +327,21 @@ void BlockTextView::Copy() {
 }
 
 void BlockTextView::Paste() {
+	std::wstring str; GetClipboardData(str);
+	std::vector<std::wstring> text = split_string_filtered(str);
+	if (text.size() == 1) {
+		Insert(text.front());
+	} else {
+		if (HasSelection()) {
+			str = this->text.substr(selection_range_end);
+			ReplaceText(selection_range_begin, -1, text.front());
+		} else {
+			str = this->text.substr(caret_position);
+			ReplaceText(caret_position, -1, text.front());
+		}
+		text.erase(text.begin()); text.back().insert(0, str);
+		block_view.InsertAfterSelf(text, str.size());
+	}
 }
 
 void BlockTextView::OnMouseMsg(MouseMsg msg) {
@@ -336,7 +364,7 @@ void BlockTextView::OnKeyMsg(KeyMsg msg) {
 		case Key::Home: MoveCaretHome(); break;
 		case Key::End: MoveCaretEnd(); break;
 
-		case Key::Enter: block_view.InsertFront(); break;
+		case Key::Enter: block_view.InsertNewFront(); break;
 
 		case Key::Backspace: Delete(true); break;
 		case Key::Delete: Delete(false); break;

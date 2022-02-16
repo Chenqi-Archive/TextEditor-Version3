@@ -163,6 +163,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="common\string_helper.h" />
     <ClInclude Include="view\BlockListView.h" />
     <ClInclude Include="view\BlockTextView.h" />
     <ClInclude Include="view\BlockView.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="view\base\TextInfoView.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="common\string_helper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="view\BlockListView.cpp" />
     <ClCompile Include="view\BlockTextView.cpp" />

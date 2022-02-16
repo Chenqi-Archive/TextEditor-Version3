@@ -11,8 +11,10 @@ class BlockListView;
 
 
 class BlockView : public PairView<Vertical> {
+protected:
+	BlockView(RootBlockView& root, BlockView& parent, std::wstring text);
 public:
-	BlockView(RootBlockView& root, BlockView& parent);
+	BlockView(BlockView& parent, std::wstring text = L"") : BlockView(parent.root, parent, text) {}
 
 	// context
 private:
@@ -20,8 +22,6 @@ private:
 	BlockView& parent;
 private:
 	bool IsRootBlock() const { return &parent == this; }
-public:
-	RootBlockView& GetRoot() const { return root; }
 
 	// child
 private:
@@ -34,7 +34,7 @@ private:
 
 	// caret
 public:
-	void SetCaret();
+	void SetCaret(size_t pos);
 
 	// selection
 public:
@@ -55,7 +55,9 @@ public:
 
 	// input
 public:
-	void InsertFront();
+	void InsertNewFront();
+	void InsertAfter(BlockView& child, std::vector<std::wstring> text, size_t caret_pos);
+	void InsertAfterSelf(std::vector<std::wstring> text, size_t caret_pos);
 };
 
 

@@ -45,6 +45,9 @@
     <ClInclude Include="view\RootBlockView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="common\string_helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -72,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="view\RootBlockView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="common\string_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
