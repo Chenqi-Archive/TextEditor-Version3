@@ -12,7 +12,7 @@ void RootBlockView::BeginSelect() {
 }
 
 void RootBlockView::DoSelect(Point point) {
-	if (selection_begin == -1) {
+	if (IsSelfSelectionBegin()) {
 		SelectTextView(point);
 	} else {
 		BlockView::DoSelect(point);

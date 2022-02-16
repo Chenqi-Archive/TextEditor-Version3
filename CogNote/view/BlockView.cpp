@@ -5,6 +5,8 @@
 
 #include "widget/DropDownFrame.h"
 
+#include "WndDesign/frame/PaddingFrame.h"
+
 
 BEGIN_NAMESPACE(WndDesign)
 
@@ -13,53 +15,67 @@ BlockView::BlockView(RootBlockView& root, BlockView& parent) : PairView{
 	new DropDownFrame{
 		text_view = new BlockTextView(*this)
 	},
-	list_view = new BlockListView()
+	new PaddingFrame{
+		Padding(10px, 0, 0, 0),
+		list_view = new BlockListView(*this)
+	}
 }, root(root), parent(parent) {
+}
 
+void BlockView::SetCaret() { text_view->SetCaret(0); }
+
+void BlockView::ClearSelection() {
+	BlockListView::ClearSelection();
+	BlockTextView::ClearSelection();
+}
+
+bool BlockView::IsSelfSelectionBegin() {
+	return list_view->selection_begin == -1;
 }
 
 void BlockView::BeginSelect(BlockView& child) {
-	selection_begin = &child == this ? -1 : list_view->GetChildData(child);
-	if (&parent != this) {
+	list_view->selection_begin = &child == this ? -1 : list_view->GetChildIndex(child);
+	if (!IsRootBlock()) {
 		parent.BeginSelect(*this);
 	} else {
 		static_cast<RootBlockView&>(parent).BeginSelect();
 	}
 }
 
+void BlockView::SelectSelf() {
+	if (IsRootBlock()) { return; }
+	parent.SelectChild(*this);
+}
+
+void BlockView::SelectChild(BlockView& child) {
+	list_view->SelectChild(child);
+}
+
 void BlockView::SelectTextView(Point point) {
 	text_view->DoSelect(point_zero + (point - ConvertDescendentPoint(*text_view, point_zero)));
 }
 
-void BlockView::SelectSelf() {
-	parent.SelectChildRange(parent.selection_begin);
-}
-
-void BlockView::SelectChildRange(size_t index) {
-	list_view->SelectChildRange(selection_begin, index);
+void BlockView::SelectListView(Point point) {
+	list_view->DoSelect(point_zero + (point - ConvertDescendentPoint(*list_view, point_zero)));
 }
 
 void BlockView::DoSelect(Point point) {
-	if (selection_begin == -1) {
-		if (HitTest(point) != list_view) { 
+	if (IsSelfSelectionBegin()) {
+		if (HitTestTextView(point)) {
 			SelectTextView(point); 
 		} else {
 			SelectSelf();
 		}
 	} else {
-		if (HitTest(point) != list_view) {
+		if (HitTestTextView(point)) {
 			SelectSelf();
 		} else {
-			BlockView& child = static_cast<BlockView&>(*list_view->HitTest(point));
-			size_t index = list_view->GetChildData(child);
-			if (selection_begin == index) {
-				child.DoSelect(point);
-			} else {
-				SelectChildRange(index);
-			}
+			SelectListView(point);
 		}
 	}
 }
+
+void BlockView::InsertFront() { list_view->InsertFront(); }
 
 
 END_NAMESPACE(WndDesign)

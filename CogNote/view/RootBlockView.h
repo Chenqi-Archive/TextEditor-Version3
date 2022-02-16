@@ -7,15 +7,13 @@ BEGIN_NAMESPACE(WndDesign)
 
 
 class RootBlockView : public BlockView {
-private:
-	friend class BlockView;
-
 public:
 	RootBlockView();
 
 	// selection
-private:
+public:
 	void BeginSelect();
+private:
 	void DoSelect(Point point);
 
 	// message

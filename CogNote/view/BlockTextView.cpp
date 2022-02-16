@@ -2,7 +2,10 @@
 #include "BlockView.h"
 
 #include "WndDesign/message/timer.h"
+#include "WndDesign/message/ime.h"
+#include "WndDesign/message/mouse_tracker.h"
 #include "WndDesign/figure/shape.h"
+#include "WndDesign/system/clipboard.h"
 
 
 BEGIN_NAMESPACE(WndDesign)
@@ -49,18 +52,26 @@ Rect selection_region_union;
 
 bool HasSelection() { return selection_range_end > selection_range_begin; }
 
+// ime
+size_t ime_composition_begin = 0;
+size_t ime_composition_end = 0;
+
 // message
-bool is_mouse_down = false;
+bool is_ctrl_down = false;
+MouseTracker mouse_tracker;
 
 END_NAMESPACE(Anonymous)
 
 
-BlockTextView::BlockTextView(BlockView& block_view) : text(L"Input"), text_block(style, text), block_view(block_view) {
+BlockTextView::BlockTextView(BlockView& block_view) : block_view(block_view), text(), text_block(style, text) {
 	cursor = Cursor::Text;
+	ime.Enable(*this);
+	word_break_iterator.SetText(text);
 }
 
 void BlockTextView::TextUpdated() {
 	text_block.SetText(style, text);
+	word_break_iterator.SetText(text);
 	SizeUpdated(UpdateLayout());
 	Redraw(region_infinite);
 }
@@ -105,15 +116,6 @@ void BlockTextView::HideCaret() {
 	}
 }
 
-void BlockTextView::ActivateCaret() {
-	if (caret_state != CaretState::Hide) {
-		if (!caret_timer.IsSet()) {
-			caret_timer.Set(caret_blink_period);
-		}
-		caret_blink_time = 0;
-	}
-}
-
 void BlockTextView::BlinkCaret() {
 	caret_blink_time += caret_blink_period;
 	if (caret_blink_time >= caret_blink_expire_time) {
@@ -130,6 +132,15 @@ void BlockTextView::BlinkCaret() {
 	RedrawCaretRegion();
 }
 
+void BlockTextView::ActivateCaret() {
+	if (caret_state != CaretState::Hide) {
+		if (!caret_timer.IsSet()) {
+			caret_timer.Set(caret_blink_period);
+		}
+		caret_blink_time = 0;
+	}
+}
+
 void BlockTextView::SetCaretFocus(Rect region) {
 	if (IsCaretVisible()) { RedrawCaretRegion(); }
 	caret_focus = this; caret_region = region;
@@ -143,55 +154,221 @@ void BlockTextView::SetCaret(const HitTestInfo& info) {
 		caret_position += info.text_length;
 		point.x += info.geometry_region.size.width;
 	}
-	SetCaretFocus(Rect(point, size));
+	SetFocus(); SetCaretFocus(Rect(point, size)); ShowCaret();
 }
 
 void BlockTextView::SetCaret(Point point) {
 	SetCaret(text_block.HitTestPoint(point));
 	selection_begin = caret_position;
+	ClearSelection();
+}
+
+void BlockTextView::SetCaret(size_t text_position) {
+	SetCaret(text_block.HitTestTextPosition(text_position));
+}
+
+void BlockTextView::MoveCaretLeft() {
+	if (HasSelection()) {
+		SetCaret(selection_range_begin);
+	} else {
+		if (caret_position > 0) {
+			SetCaret(caret_position - 1);
+		} else {
+		}
+	}
+}
+
+void BlockTextView::MoveCaretRight() {
+	if (HasSelection()) {
+		SetCaret(selection_range_end);
+	} else {
+		if (caret_position < text.length()) {
+			SetCaret(caret_position + GetCharacterLength(caret_position));
+		} else {
+		}
+	}
+}
+
+void BlockTextView::MoveCaretUp() {
+}
+
+void BlockTextView::MoveCaretDown() {
+}
+
+void BlockTextView::MoveCaretHome() {
+	SetCaret(0);
+}
+
+void BlockTextView::MoveCaretEnd() {
+	SetCaret((size_t)-1);
 }
 
 void BlockTextView::RedrawSelectionRegion() {
 	caret_focus->Redraw(selection_region_union);
 }
 
-void BlockTextView::UpdateSelectionRegion() {
-	selection_info = HasSelection() ?
-		text_block.HitTestTextRange(selection_range_begin, selection_range_end - selection_range_begin) :
-		std::vector<HitTestInfo>();
+void BlockTextView::ClearSelection() {
+	if (HasSelection()) {
+		selection_range_begin = selection_range_end = 0;
+		RedrawSelectionRegion();
+		selection_info.clear();
+		selection_region_union = region_empty;
+	}
+}
+
+void BlockTextView::UpdateSelectionRegion(size_t begin, size_t end) {
+	if (end < begin) { std::swap(begin, end); }
+	if (selection_range_begin == begin && selection_range_end == end) { return; }
+	HideCaret();
 	RedrawSelectionRegion();
-	selection_region_union = region_empty;
-	for (auto& it : selection_info) {
-		selection_region_union = selection_region_union.Union(it.geometry_region);
+	selection_range_begin = begin; selection_range_end = end;
+	selection_info.clear(); selection_region_union = region_empty;
+	if (HasSelection()) {
+		selection_info = text_block.HitTestTextRange(begin, end - begin);
+		for (auto& it : selection_info) {
+			selection_region_union = selection_region_union.Union(it.geometry_region);
+		}
 	}
 	RedrawSelectionRegion();
 }
 
+void BlockTextView::SelectWord() {
+	if (caret_position >= text.length()) { return; }
+	TextRange word_range = word_break_iterator.Seek(caret_position);
+	UpdateSelectionRegion(word_range.left(), word_range.right());
+}
+
+void BlockTextView::SelectAll() {
+	if (selection_range_begin == 0 && selection_range_end == text.length()) { return block_view.SelectAll(); }
+	UpdateSelectionRegion(0, text.length());
+}
+
 void BlockTextView::DoSelect(Point point) {
-	SetFocus();
 	SetCaret(text_block.HitTestPoint(point));
-	selection_range_begin = selection_begin;
-	selection_range_end = caret_position;
-	if (selection_range_end < selection_range_begin) { std::swap(selection_range_begin, selection_range_end); }
-	UpdateSelectionRegion();
+	UpdateSelectionRegion(selection_begin, caret_position);
+}
+
+void BlockTextView::Insert(wchar ch) {
+	if (HasSelection()) {
+		ReplaceText(selection_range_begin, selection_range_end - selection_range_begin, ch);
+		SetCaret(selection_range_begin + 1);
+	} else {
+		InsertText(caret_position, ch);
+		SetCaret(caret_position + 1);
+	}
+}
+
+void BlockTextView::Delete(bool is_backspace) {
+	if (HasSelection()) {
+		DeleteText(selection_range_begin, selection_range_end - selection_range_begin);
+		SetCaret(selection_range_begin);
+	} else {
+		if (is_backspace) {
+			if (caret_position == 0) { return; }
+			size_t previous_caret_position = caret_position;
+			SetCaret(caret_position - 1);
+			DeleteText(caret_position, previous_caret_position - caret_position);
+		} else {
+			if (caret_position >= text.length()) { return; }
+			DeleteText(caret_position, GetCharacterLength(caret_position));
+		}
+	}
+}
+
+void BlockTextView::OnImeBegin() {
+	Point ime_position;
+	if (HasSelection()) {
+		ime_composition_begin = selection_range_begin;
+		ime_composition_end = selection_range_end;
+		ime_position = selection_info.front().geometry_region.RightBottom();
+	} else {
+		ime_composition_begin = caret_position;
+		ime_composition_end = ime_composition_begin;
+		ime_position = caret_region.RightBottom();
+	}
+	ime.SetPosition(*this, ime_position);
+}
+
+void BlockTextView::OnImeString() {
+	std::wstring str = ime.GetString();
+	ReplaceText(ime_composition_begin, ime_composition_end - ime_composition_begin, str);
+	ime_composition_end = ime_composition_begin + str.length();
+	SetCaret(ime_composition_begin + ime.GetCursorPosition());
+}
+
+void BlockTextView::OnImeEnd() {
+	if (caret_position != ime_composition_end) { SetCaret(ime_composition_end); }
+}
+
+void BlockTextView::Cut() {
+	if (HasSelection()) {
+		Copy();
+		Delete(false);
+	}
+}
+
+void BlockTextView::Copy() {
+	if (HasSelection()) {
+		SetClipboardData(text.substr(selection_range_begin, selection_range_end - selection_range_begin));
+	}
+}
+
+void BlockTextView::Paste() {
 }
 
 void BlockTextView::OnMouseMsg(MouseMsg msg) {
-	switch (msg.type) {
-	case MouseMsg::LeftDown: is_mouse_down = true; SetCaret(msg.point); ShowCaret(); break;
-	case MouseMsg::Move: if (is_mouse_down) { is_mouse_down = false; block_view.BeginSelect(); HideCaret(); } break;
-	case MouseMsg::LeftUp: if (is_mouse_down) { is_mouse_down = false; SetFocus(); ShowCaret(); } break;
+	switch (mouse_tracker.Track(msg)) {
+	case MouseTrackMsg::LeftDown: SetCaret(msg.point); break;
+	case MouseTrackMsg::LeftDrag: mouse_tracker.is_mouse_down = false; block_view.BeginSelect(); HideCaret(); break;
+	case MouseTrackMsg::LeftDoubleClick: SelectWord(); break;
+	case MouseTrackMsg::LeftTripleClick: SelectAll(); break;
 	}
 }
 
 void BlockTextView::OnKeyMsg(KeyMsg msg) {
+	switch (msg.type) {
+	case KeyMsg::KeyDown:
+		switch (msg.key) {
+		case Key::Left: MoveCaretLeft(); break;
+		case Key::Right: MoveCaretRight(); break;
+		case Key::Up: MoveCaretUp(); break;
+		case Key::Down: MoveCaretDown(); break;
+		case Key::Home: MoveCaretHome(); break;
+		case Key::End: MoveCaretEnd(); break;
 
+		case Key::Enter: block_view.InsertFront(); break;
+
+		case Key::Backspace: Delete(true); break;
+		case Key::Delete: Delete(false); break;
+
+		case Key::Ctrl: is_ctrl_down = true; break;
+
+		case CharKey('A'): if (is_ctrl_down) { SelectAll(); } break;
+		case CharKey('X'): if (is_ctrl_down) { Cut(); } break;
+		case CharKey('C'): if (is_ctrl_down) { Copy(); } break;
+		case CharKey('V'): if (is_ctrl_down) { Paste(); } break;
+		}
+		break;
+	case KeyMsg::KeyUp:
+		switch (msg.key) {
+		case Key::Ctrl: is_ctrl_down = false; break;
+		}
+		break;
+	case KeyMsg::Char:
+		if (is_ctrl_down) { break; }
+		if (!iswcntrl(msg.ch)) { Insert(msg.ch); };
+		break;
+	case KeyMsg::ImeBegin: OnImeBegin(); break;
+	case KeyMsg::ImeString: OnImeString(); break;
+	case KeyMsg::ImeEnd: OnImeEnd(); break;
+	}
+	ActivateCaret();
 }
 
 void BlockTextView::OnNotifyMsg(NotifyMsg msg) {
 	switch (msg) {
-	case NotifyMsg::MouseLeave: is_mouse_down = false; break;
-	case NotifyMsg::LoseFocus: HideCaret(); break;
+	case NotifyMsg::MouseLeave: mouse_tracker.is_mouse_down = false; break;
+	case NotifyMsg::LoseFocus: block_view.ClearSelection(); HideCaret(); break;
 	}
 }
 
