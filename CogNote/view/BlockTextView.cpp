@@ -220,7 +220,6 @@ void BlockTextView::ClearSelection() {
 }
 
 void BlockTextView::UpdateSelectionRegion(size_t begin, size_t end) {
-	if (end < begin) { std::swap(begin, end); }
 	if (selection_range_begin == begin && selection_range_end == end) { return; }
 	HideCaret();
 	RedrawSelectionRegion();
@@ -248,7 +247,8 @@ void BlockTextView::SelectAll() {
 
 void BlockTextView::DoSelect(Point point) {
 	SetCaret(text_block.HitTestPoint(point));
-	UpdateSelectionRegion(selection_begin, caret_position);
+	size_t begin = selection_begin, end = caret_position; if (end < begin) { std::swap(begin, end); }
+	UpdateSelectionRegion(begin, end);
 }
 
 void BlockTextView::Insert(wchar ch) {
@@ -286,6 +286,18 @@ void BlockTextView::Delete(bool is_backspace) {
 			DeleteText(caret_position, GetCharacterLength(caret_position));
 		}
 	}
+}
+
+void BlockTextView::OnEnter() {
+	std::wstring str;
+	if (HasSelection()) {
+		str = text.substr(selection_range_end);
+		DeleteText(selection_range_begin, -1);
+	} else {
+		str = text.substr(caret_position);
+		DeleteText(caret_position, -1);
+	}
+	is_ctrl_down ? block_view.InsertFront(str) : block_view.InsertAfterSelf(str);
 }
 
 void BlockTextView::OnImeBegin() {
@@ -364,7 +376,7 @@ void BlockTextView::OnKeyMsg(KeyMsg msg) {
 		case Key::Home: MoveCaretHome(); break;
 		case Key::End: MoveCaretEnd(); break;
 
-		case Key::Enter: block_view.InsertNewFront(); break;
+		case Key::Enter: OnEnter(); break;
 
 		case Key::Backspace: Delete(true); break;
 		case Key::Delete: Delete(false); break;

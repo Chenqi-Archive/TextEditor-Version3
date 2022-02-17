@@ -92,6 +92,8 @@ private:
 	void Insert(wchar ch);
 	void Insert(std::wstring str);
 	void Delete(bool is_backspace);
+private:
+	void OnEnter();
 	void OnImeBegin();
 	void OnImeString();
 	void OnImeEnd();

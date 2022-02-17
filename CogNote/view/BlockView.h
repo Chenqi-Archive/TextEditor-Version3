@@ -14,7 +14,7 @@ class BlockView : public PairView<Vertical> {
 protected:
 	BlockView(RootBlockView& root, BlockView& parent, std::wstring text);
 public:
-	BlockView(BlockView& parent, std::wstring text = L"") : BlockView(parent.root, parent, text) {}
+	BlockView(BlockView& parent, std::wstring text) : BlockView(parent.root, parent, text) {}
 
 	// context
 private:
@@ -55,8 +55,10 @@ public:
 
 	// input
 public:
-	void InsertNewFront();
+	void InsertFront(std::wstring text);
+	void InsertAfter(BlockView& child, std::wstring text);
 	void InsertAfter(BlockView& child, std::vector<std::wstring> text, size_t caret_pos);
+	void InsertAfterSelf(std::wstring text);
 	void InsertAfterSelf(std::vector<std::wstring> text, size_t caret_pos);
 };
 

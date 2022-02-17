@@ -50,9 +50,9 @@ void BlockListView::ClearSelection() {
 }
 
 void BlockListView::UpdateSelectionRegion(size_t begin, size_t end) {
-	if (end < begin) { std::swap(begin, end); }
 	if (selection_focus == this && selection_range_begin == begin && selection_range_end == end) { return; }
 	SetFocus();
+	RedrawSelectionRegion();
 	selection_focus = this;	selection_range_begin = begin; selection_range_end = end;
 	selection_region.point.x = 0.0f;
 	selection_region.point.y = child_list[begin].BeginOffset();
@@ -78,15 +78,12 @@ void BlockListView::DoSelect(Point point) {
 		point.y -= it->offset;
 		AsBlockView(it->child).DoSelect(point);
 	} else {
-		UpdateSelectionRegion(selection_begin, index);
+		size_t begin = selection_begin, end = index; if (end < begin) { std::swap(begin, end); }
+		UpdateSelectionRegion(begin, end + 1);
 	}
 }
 
 void BlockListView::Insert(wchar ch) {
-
-}
-
-void BlockListView::Insert(std::vector<std::wstring> text) {
 
 }
 
@@ -95,9 +92,9 @@ void BlockListView::Delete() {
 	EraseChild(selection_range_begin, selection_range_end - selection_range_begin);
 }
 
-void BlockListView::InsertNewFront() {
-	InsertChild(0, new BlockView(block_view));
-	GetChild(0).SetCaret(0);
+void BlockListView::InsertAt(size_t index, std::wstring text) {
+	InsertChild(index, new BlockView(block_view, std::move(text)));
+	GetChild(index).SetCaret(0);
 }
 
 void BlockListView::InsertAt(size_t index, std::vector<std::wstring> text, size_t caret_pos) {

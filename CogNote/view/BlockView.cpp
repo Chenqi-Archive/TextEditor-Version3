@@ -35,16 +35,11 @@ bool BlockView::IsSelfSelectionBegin() {
 
 void BlockView::BeginSelect(BlockView& child) {
 	list_view->selection_begin = &child == this ? -1 : list_view->GetChildIndex(child);
-	if (!IsRootBlock()) {
-		parent.BeginSelect(*this);
-	} else {
-		static_cast<RootBlockView&>(parent).BeginSelect();
-	}
+	IsRootBlock() ? static_cast<RootBlockView&>(parent).BeginSelect() : parent.BeginSelect(*this);
 }
 
 void BlockView::SelectSelf() {
-	if (IsRootBlock()) { return; }
-	parent.SelectChild(*this);
+	IsRootBlock() ? void() : parent.SelectChild(*this);
 }
 
 void BlockView::SelectChild(BlockView& child) {
@@ -75,16 +70,24 @@ void BlockView::DoSelect(Point point) {
 	}
 }
 
-void BlockView::InsertNewFront() {
-	list_view->InsertNewFront();
+void BlockView::InsertFront(std::wstring text) {
+	list_view->InsertFront(text);
+}
+
+void BlockView::InsertAfter(BlockView& child, std::wstring text) {
+	list_view->InsertAfter(child, text);
 }
 
 void BlockView::InsertAfter(BlockView& child, std::vector<std::wstring> text, size_t caret_pos) {
 	list_view->InsertAfter(child, text, caret_pos);
 }
 
+void BlockView::InsertAfterSelf(std::wstring text) {
+	IsRootBlock() ? list_view->InsertFront(text) : parent.InsertAfter(*this, text);
+}
+
 void BlockView::InsertAfterSelf(std::vector<std::wstring> text, size_t caret_pos) {
-	IsRootBlock() ? list_view->InsertAt(0, text, caret_pos) : parent.InsertAfter(*this, text, caret_pos);
+	IsRootBlock() ? list_view->InsertFront(text, caret_pos) : parent.InsertAfter(*this, text, caret_pos);
 }
 
 
