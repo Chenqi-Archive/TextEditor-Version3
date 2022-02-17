@@ -24,6 +24,10 @@ private:
 public:
 	size_t GetChildIndex(BlockView& child);
 
+	// layout
+private:
+	virtual Size OnSizeRefUpdate(Size size_ref) override;
+
 	// paint
 private:
 	virtual void OnDraw(FigureQueue& figure_queue, Rect draw_region) override;

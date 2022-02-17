@@ -40,6 +40,7 @@ ref_ptr<BlockTextView> caret_focus = nullptr;
 size_t caret_position = 0;
 Rect caret_region = region_empty;
 
+bool IsCaretActive() { return caret_state != CaretState::Hide; }
 bool IsCaretVisible() { return caret_state == CaretState::Show || caret_state == CaretState::BlinkShow; }
 
 // selection
@@ -81,6 +82,8 @@ void BlockTextView::TextUpdated() {
 
 Size BlockTextView::UpdateLayout() {
 	text_block.UpdateSizeRef(Size(width, length_max));
+	if (caret_focus == this && IsCaretActive()) { SetCaret(caret_position); }
+	if (caret_focus == this && HasSelection()) { UpdateSelectionRegion(selection_range_begin, selection_range_end); }
 	return Size(width, text_block.GetSize().height);
 }
 
@@ -157,13 +160,13 @@ void BlockTextView::SetCaret(const HitTestInfo& info) {
 		caret_position += info.text_length;
 		point.x += info.geometry_region.size.width;
 	}
+	ClearSelection();
 	SetFocus(); SetCaretFocus(Rect(point, size)); ShowCaret();
 }
 
 void BlockTextView::SetCaret(Point point) {
 	SetCaret(text_block.HitTestPoint(point));
 	selection_begin = caret_position;
-	ClearSelection();
 }
 
 void BlockTextView::SetCaret(size_t text_position) {
@@ -220,7 +223,6 @@ void BlockTextView::ClearSelection() {
 }
 
 void BlockTextView::UpdateSelectionRegion(size_t begin, size_t end) {
-	if (selection_range_begin == begin && selection_range_end == end) { return; }
 	HideCaret();
 	RedrawSelectionRegion();
 	selection_range_begin = begin; selection_range_end = end;
@@ -248,6 +250,7 @@ void BlockTextView::SelectAll() {
 void BlockTextView::DoSelect(Point point) {
 	SetCaret(text_block.HitTestPoint(point));
 	size_t begin = selection_begin, end = caret_position; if (end < begin) { std::swap(begin, end); }
+	if (selection_range_begin == begin && selection_range_end == end) { return; }
 	UpdateSelectionRegion(begin, end);
 }
 

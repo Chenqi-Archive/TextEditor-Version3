@@ -33,6 +33,13 @@ BlockView& BlockListView::AsBlockView(child_ptr& child) { return static_cast<Blo
 
 size_t BlockListView::GetChildIndex(BlockView& child) { return GetChildData(child); }
 
+Size BlockListView::OnSizeRefUpdate(Size size_ref) {
+	bool need_update = size.width != size_ref.width;
+	ListLayout::OnSizeRefUpdate(size_ref);
+	if (need_update && selection_focus == this && HasSelection()) { UpdateSelectionRegion(selection_range_begin, selection_range_end); }
+	return size;
+}
+
 void BlockListView::OnDraw(FigureQueue& figure_queue, Rect draw_region) {
 	ListLayout::OnDraw(figure_queue, draw_region);
 	if (selection_focus == this && HasSelection()) {
@@ -50,7 +57,6 @@ void BlockListView::ClearSelection() {
 }
 
 void BlockListView::UpdateSelectionRegion(size_t begin, size_t end) {
-	if (selection_focus == this && selection_range_begin == begin && selection_range_end == end) { return; }
 	SetFocus();
 	RedrawSelectionRegion();
 	selection_focus = this;	selection_range_begin = begin; selection_range_end = end;
@@ -79,6 +85,7 @@ void BlockListView::DoSelect(Point point) {
 		AsBlockView(it->child).DoSelect(point);
 	} else {
 		size_t begin = selection_begin, end = index; if (end < begin) { std::swap(begin, end); }
+		if (selection_focus == this && selection_range_begin == begin && selection_range_end == end + 1) { return; }
 		UpdateSelectionRegion(begin, end + 1);
 	}
 }
