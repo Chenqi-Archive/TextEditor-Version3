@@ -11,7 +11,7 @@
 BEGIN_NAMESPACE(WndDesign)
 
 
-BlockView::BlockView(RootBlockView& root, BlockView& parent, std::wstring text) : PairView{
+BlockView::BlockView(BlockView& parent, std::wstring text) : PairView{
 	new DropDownFrame{
 		text_view = new BlockTextView(*this, text)
 	},
@@ -19,7 +19,7 @@ BlockView::BlockView(RootBlockView& root, BlockView& parent, std::wstring text) 
 		Padding(10px, 0, 0, 0),
 		list_view = new BlockListView(*this)
 	}
-}, root(root), parent(parent) {
+}, root(parent.root), parent(&parent) {
 }
 
 void BlockView::SetCaret(size_t pos) { text_view->SetCaret(pos); }
@@ -35,11 +35,11 @@ bool BlockView::IsSelfSelectionBegin() {
 
 void BlockView::BeginSelect(BlockView& child) {
 	list_view->selection_begin = &child == this ? -1 : list_view->GetChildIndex(child);
-	IsRootBlock() ? static_cast<RootBlockView&>(parent).BeginSelect() : parent.BeginSelect(*this);
+	IsRootBlock() ? root->BeginSelect() : parent->BeginSelect(*this);
 }
 
 void BlockView::SelectSelf() {
-	IsRootBlock() ? void() : parent.SelectChild(*this);
+	IsRootBlock() ? void() : parent->SelectChild(*this);
 }
 
 void BlockView::SelectChild(BlockView& child) {
@@ -74,6 +74,10 @@ void BlockView::InsertFront(std::wstring text) {
 	list_view->InsertFront(text);
 }
 
+void BlockView::InsertBack(std::vector<std::unique_ptr<BlockView>> block_view_list) {
+	list_view->InsertBack(std::move(block_view_list));
+}
+
 void BlockView::InsertAfter(BlockView& child, std::wstring text) {
 	list_view->InsertAfter(child, text);
 }
@@ -82,12 +86,20 @@ void BlockView::InsertAfter(BlockView& child, std::vector<std::wstring> text, si
 	list_view->InsertAfter(child, text, caret_pos);
 }
 
+void BlockView::InsertAfter(BlockView& child, std::vector<std::unique_ptr<BlockView>> block_view_list) {
+	list_view->InsertAfter(child, std::move(block_view_list));
+}
+
 void BlockView::InsertAfterSelf(std::wstring text) {
-	IsRootBlock() ? list_view->InsertFront(text) : parent.InsertAfter(*this, text);
+	IsRootBlock() ? list_view->InsertFront(text) : parent->InsertAfter(*this, text);
 }
 
 void BlockView::InsertAfterSelf(std::vector<std::wstring> text, size_t caret_pos) {
-	IsRootBlock() ? list_view->InsertFront(text, caret_pos) : parent.InsertAfter(*this, text, caret_pos);
+	IsRootBlock() ? list_view->InsertFront(text, caret_pos) : parent->InsertAfter(*this, text, caret_pos);
+}
+
+void BlockView::InsertAfterSelf(std::vector<std::unique_ptr<BlockView>> block_view_list) {
+	IsRootBlock() ? void() : parent->InsertAfter(*this, std::move(block_view_list));
 }
 
 

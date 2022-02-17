@@ -21,6 +21,7 @@ bool HasSelection() { return selection_range_end > selection_range_begin; }
 
 // message
 bool is_ctrl_down = false;
+bool is_shift_down = false;
 
 END_NAMESPACE(Anonymous)
 
@@ -30,6 +31,16 @@ BlockListView::BlockListView(BlockView& block_view) : ListLayout(0.0f), block_vi
 BlockListView::~BlockListView() {}
 
 BlockView& BlockListView::AsBlockView(child_ptr& child) { return static_cast<BlockView&>(static_cast<WndObject&>(child)); }
+
+std::vector<std::unique_ptr<BlockView>> BlockListView::ExtractChild(size_t begin, size_t end) {
+	std::vector<std::unique_ptr<BlockView>> block_view_list; block_view_list.reserve(end - begin);
+	for (size_t i = begin; i < end; ++i) {
+		UnregisterChild(child_list[i].child);
+		block_view_list.emplace_back(static_cast<alloc_ptr<BlockView>>(child_list[i].child.release()));
+	}
+	EraseChild(begin, end - begin);
+	return block_view_list;
+}
 
 size_t BlockListView::GetChildIndex(BlockView& child) { return GetChildData(child); }
 
@@ -97,6 +108,18 @@ void BlockListView::Insert(wchar ch) {
 void BlockListView::Delete() {
 	if (!HasSelection()) { return; }
 	EraseChild(selection_range_begin, selection_range_end - selection_range_begin);
+	ClearSelection();
+}
+
+void BlockListView::OnTab() {
+	if (!HasSelection()) { return; }
+	if (is_shift_down) {
+		if (block_view.IsRootBlock()) { return; }
+		block_view.InsertAfterSelf(ExtractChild(selection_range_begin, selection_range_end));
+	} else {
+		if (selection_range_begin == 0) { return; }
+		GetChild(selection_range_begin - 1).InsertBack(ExtractChild(selection_range_begin, selection_range_end));
+	}
 }
 
 void BlockListView::InsertAt(size_t index, std::wstring text) {
@@ -111,6 +134,13 @@ void BlockListView::InsertAt(size_t index, std::vector<std::wstring> text, size_
 	}
 	InsertChild(index, std::move(children));
 	GetChild(index + text.size() - 1).SetCaret(caret_pos);
+}
+
+void BlockListView::InsertAt(size_t index, std::vector<std::unique_ptr<BlockView>> block_view_list) {
+	size_t end = index + block_view_list.size();
+	for (auto& it : block_view_list) { it->parent = &block_view; }
+	InsertChild(index, std::move(reinterpret_cast<std::vector<child_ptr>&>(block_view_list)));
+	UpdateSelectionRegion(index, end);
 }
 
 void BlockListView::Cut() {
@@ -129,7 +159,10 @@ void BlockListView::OnKeyMsg(KeyMsg msg) {
 		case Key::Backspace: Delete(); break;
 		case Key::Delete: Delete(); break;
 
+		case Key::Tab: OnTab(); break;
+
 		case Key::Ctrl: is_ctrl_down = true; break;
+		case Key::Shift: is_shift_down = true; break;
 
 		case CharKey('A'): if (is_ctrl_down) { SelectAll(); } break;
 		case CharKey('X'): if (is_ctrl_down) { Cut(); } break;
@@ -140,6 +173,7 @@ void BlockListView::OnKeyMsg(KeyMsg msg) {
 	case KeyMsg::KeyUp:
 		switch (msg.key) {
 		case Key::Ctrl: is_ctrl_down = false; break;
+		case Key::Shift: is_shift_down = false; break;
 		}
 		break;
 	case KeyMsg::Char:
@@ -151,7 +185,7 @@ void BlockListView::OnKeyMsg(KeyMsg msg) {
 
 void BlockListView::OnNotifyMsg(NotifyMsg msg) {
 	switch (msg) {
-	case NotifyMsg::LoseFocus: block_view.ClearSelection(); break;
+	case NotifyMsg::LoseFocus: is_ctrl_down = false; is_shift_down = false; block_view.ClearSelection(); break;
 	}
 }
 

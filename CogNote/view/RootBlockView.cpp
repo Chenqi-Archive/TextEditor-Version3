@@ -5,7 +5,7 @@
 BEGIN_NAMESPACE(WndDesign)
 
 
-RootBlockView::RootBlockView() : BlockView(*this, *this, L"Root") {}
+RootBlockView::RootBlockView() : BlockView(*this, L"Root") { root = this; }
 
 void RootBlockView::BeginSelect() {
 	SetCapture();

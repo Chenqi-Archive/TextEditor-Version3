@@ -21,6 +21,7 @@ private:
 private:
 	BlockView& AsBlockView(child_ptr& child);
 	BlockView& GetChild(size_t index) { return AsBlockView(child_list[index].child); }
+	std::vector<std::unique_ptr<BlockView>> ExtractChild(size_t begin, size_t end);
 public:
 	size_t GetChildIndex(BlockView& child);
 
@@ -51,13 +52,18 @@ private:
 	void Insert(wchar ch);
 	void Delete();
 private:
+	void OnTab();
+private:
 	void InsertAt(size_t index, std::wstring text);
 	void InsertAt(size_t index, std::vector<std::wstring> text, size_t caret_pos);
+	void InsertAt(size_t index, std::vector<std::unique_ptr<BlockView>> block_view_list);
 public:
 	void InsertFront(std::wstring text) { InsertAt(0, text); }
 	void InsertFront(std::vector<std::wstring> text, size_t caret_pos) { InsertAt(0, text, caret_pos); }
+	void InsertBack(std::vector<std::unique_ptr<BlockView>> block_view_list) { InsertAt(child_list.size(), std::move(block_view_list)); }
 	void InsertAfter(BlockView& child, std::wstring text) { InsertAt(GetChildIndex(child) + 1, text); }
 	void InsertAfter(BlockView& child, std::vector<std::wstring> text, size_t caret_pos) { InsertAt(GetChildIndex(child) + 1, text, caret_pos); }
+	void InsertAfter(BlockView& child, std::vector<std::unique_ptr<BlockView>> block_view_list) { InsertAt(GetChildIndex(child) + 1, std::move(block_view_list)); }
 
 	// clipboard
 private:
