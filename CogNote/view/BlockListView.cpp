@@ -67,6 +67,10 @@ void BlockListView::ClearSelection() {
 	selection_focus = nullptr;
 }
 
+bool BlockListView::HitTestSelection(Point point) {
+	return selection_focus == this && selection_region.Contains(point);
+}
+
 void BlockListView::UpdateSelectionRegion(size_t begin, size_t end) {
 	SetFocus();
 	RedrawSelectionRegion();
@@ -99,6 +103,18 @@ void BlockListView::DoSelect(Point point) {
 		if (selection_focus == this && selection_range_begin == begin && selection_range_end == end + 1) { return; }
 		UpdateSelectionRegion(begin, end + 1);
 	}
+}
+
+ref_ptr<BlockView> BlockListView::DoTextDragDrop(Point point) {
+	auto it = HitTestItem(point.y); point.y -= it->offset;
+	return AsBlockView(it->child).DoDragDrop(point);
+}
+
+ref_ptr<BlockView> BlockListView::DoDragDrop(Point point) {
+	return ref_ptr<BlockView>();
+}
+
+void BlockListView::FinishDragDrop(BlockListView& list_view) {
 }
 
 void BlockListView::Insert(wchar ch) {

@@ -1,8 +1,18 @@
 #include "RootBlockView.h"
 #include "BlockTextView.h"
+#include "BlockListView.h"
 
 
 BEGIN_NAMESPACE(WndDesign)
+
+BEGIN_NAMESPACE(Anonymous)
+
+// drag and drop
+bool drag_drop = false;
+ref_ptr<BlockView> drag_drop_src = nullptr;
+ref_ptr<BlockView> drag_drop_dest = nullptr;
+
+END_NAMESPACE(Anonymous)
 
 
 RootBlockView::RootBlockView() : BlockView(*this, L"Root") { root = this; }
@@ -13,16 +23,48 @@ void RootBlockView::BeginSelect() {
 
 void RootBlockView::DoSelect(Point point) {
 	if (IsSelfSelectionBegin()) {
-		SelectTextView(point);
+		text_view->DoSelect(ConvertPointToTextView(point));
 	} else {
 		BlockView::DoSelect(point);
 	}
 }
 
+void RootBlockView::BeginDragDrop(BlockView& block_view) {
+	drag_drop = true; drag_drop_src = &block_view;
+	SetFocus(); SetCapture();
+}
+
+void RootBlockView::DoDragDrop(Point point) {
+	if (drag_drop_src != nullptr) {
+		drag_drop_dest = BlockView::DoDragDrop(point);
+	}
+}
+
+void RootBlockView::FinishDragDrop() {
+	if (drag_drop_dest != nullptr && drag_drop_src != nullptr) {
+		drag_drop_dest->FinishDragDrop(*drag_drop_src);
+	}
+	CancelDragDrop();
+}
+
+void RootBlockView::CancelDragDrop() {
+	drag_drop = false; drag_drop_src = nullptr; drag_drop_dest = nullptr;
+	ReleaseCapture();
+}
+
 void RootBlockView::OnMouseMsg(MouseMsg msg) {
 	switch (msg.type) {
-	case MouseMsg::Move: DoSelect(msg.point); break;
-	case MouseMsg::LeftUp: ReleaseCapture(); break;
+	case MouseMsg::Move: drag_drop ? DoDragDrop(msg.point) : DoSelect(msg.point); break;
+	case MouseMsg::LeftUp: if (drag_drop) { FinishDragDrop(); } else { ReleaseCapture(); } break;
+	}
+}
+
+void RootBlockView::OnKeyMsg(KeyMsg msg) {
+	switch (msg.type) {
+	case KeyMsg::KeyDown:
+		switch (msg.key) {
+		case Key::Escape: if (drag_drop) { CancelDragDrop(); } break;
+		}
 	}
 }
 

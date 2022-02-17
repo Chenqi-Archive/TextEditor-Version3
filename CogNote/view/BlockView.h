@@ -22,11 +22,14 @@ public:
 	bool IsRootBlock() const { return parent == this; }
 
 	// child
-private:
+protected:
 	ref_ptr<BlockTextView> text_view;
 	ref_ptr<BlockListView> list_view;
 
 	// layout
+protected:
+	Point ConvertPointToTextView(Point point);
+	Point ConvertPointToListView(Point point);
 private:
 	bool HitTestTextView(Point point) { return HitTest(point) == first; }
 
@@ -43,13 +46,17 @@ private:
 	void BeginSelect(BlockView& child);
 	void SelectSelf();
 	void SelectChild(BlockView& child);
-protected:
-	void SelectTextView(Point point);
-	void SelectListView(Point point);
 public:
 	void BeginSelect() { BeginSelect(*this); }
 	void SelectAll() { SelectSelf(); }
 	void DoSelect(Point point);
+
+	// drag and drop
+public:
+	void BeginTextDragDrop();
+	void BeginListDragDrop();
+	ref_ptr<BlockView> DoDragDrop(Point point);
+	void FinishDragDrop(BlockView& block_view);
 
 	// input
 public:

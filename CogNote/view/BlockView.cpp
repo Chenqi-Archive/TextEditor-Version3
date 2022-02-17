@@ -10,6 +10,13 @@
 
 BEGIN_NAMESPACE(WndDesign)
 
+BEGIN_NAMESPACE(Anonymous)
+
+// drag and drop
+bool drag_drop_text = false;
+
+END_NAMESPACE(Anonymous)
+
 
 BlockView::BlockView(BlockView& parent, std::wstring text) : PairView{
 	new DropDownFrame{
@@ -20,6 +27,14 @@ BlockView::BlockView(BlockView& parent, std::wstring text) : PairView{
 		list_view = new BlockListView(*this)
 	}
 }, root(parent.root), parent(&parent) {
+}
+
+Point BlockView::ConvertPointToTextView(Point point) {
+	return point_zero + (point - ConvertDescendentPoint(*text_view, point_zero));
+}
+
+Point BlockView::ConvertPointToListView(Point point) {
+	return point_zero + (point - ConvertDescendentPoint(*list_view, point_zero));
 }
 
 void BlockView::SetCaret(size_t pos) { text_view->SetCaret(pos); }
@@ -46,18 +61,10 @@ void BlockView::SelectChild(BlockView& child) {
 	list_view->SelectChild(child);
 }
 
-void BlockView::SelectTextView(Point point) {
-	text_view->DoSelect(point_zero + (point - ConvertDescendentPoint(*text_view, point_zero)));
-}
-
-void BlockView::SelectListView(Point point) {
-	list_view->DoSelect(point_zero + (point - ConvertDescendentPoint(*list_view, point_zero)));
-}
-
 void BlockView::DoSelect(Point point) {
 	if (IsSelfSelectionBegin()) {
 		if (HitTestTextView(point)) {
-			SelectTextView(point);
+			text_view->DoSelect(ConvertPointToTextView(point));
 		} else {
 			SelectSelf();
 		}
@@ -65,9 +72,35 @@ void BlockView::DoSelect(Point point) {
 		if (HitTestTextView(point)) {
 			SelectSelf();
 		} else {
-			SelectListView(point);
+			list_view->DoSelect(ConvertPointToListView(point));
 		}
 	}
+}
+
+void BlockView::BeginTextDragDrop() {
+	drag_drop_text = true;
+	root->BeginDragDrop(*this);
+}
+
+void BlockView::BeginListDragDrop() {
+	drag_drop_text = false;
+	root->BeginDragDrop(*this);
+}
+
+ref_ptr<BlockView> BlockView::DoDragDrop(Point point) {
+	if (drag_drop_text) {
+		if (HitTestTextView(point)) {
+			return text_view->DoDragDrop(ConvertPointToTextView(point));
+		} else {
+			return list_view->DoTextDragDrop(ConvertPointToListView(point));
+		}
+	} else {
+		return list_view->DoDragDrop(ConvertPointToListView(point));
+	}
+}
+
+void BlockView::FinishDragDrop(BlockView& block_view) {
+	drag_drop_text ? text_view->FinishDragDrop(*block_view.text_view) : list_view->FinishDragDrop(*block_view.list_view);
 }
 
 void BlockView::InsertFront(std::wstring text) {

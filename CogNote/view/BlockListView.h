@@ -41,11 +41,18 @@ public:
 public:
 	size_t selection_begin = 0;
 private:
+	bool HitTestSelection(Point point);
 	void UpdateSelectionRegion(size_t begin, size_t end);
 	void SelectAll();
 public:
 	void SelectChild(BlockView& child);
 	void DoSelect(Point point);
+
+	// drag and drop
+public:
+	ref_ptr<BlockView> DoTextDragDrop(Point point);
+	ref_ptr<BlockView> DoDragDrop(Point point);
+	void FinishDragDrop(BlockListView& list_view);
 
 	// input
 private:

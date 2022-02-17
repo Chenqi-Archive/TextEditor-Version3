@@ -21,7 +21,7 @@ private:
 
 	// text
 private:
-	using HitTestInfo = TextBlockHitTestInfo;
+	using HitTestInfo = TextBlock::HitTestInfo;
 private:
 	std::wstring text;
 	TextBlock text_block;
@@ -62,7 +62,6 @@ private:
 public:
 	static void ActivateCaret();
 private:
-	void SetCaretFocus(Rect region);
 	void SetCaret(const HitTestInfo& info);
 	void SetCaret(Point point);
 public:
@@ -81,11 +80,19 @@ private:
 public:
 	static void ClearSelection();
 private:
+	bool HitTestSelection(Point point);
 	void UpdateSelectionRegion(size_t begin, size_t end);
 	void SelectWord();
 	void SelectAll();
 public:
 	void DoSelect(Point point);
+
+	// drag and drop
+private:
+	static void RedrawDragDropCaretRegion();
+public:
+	ref_ptr<BlockView> DoDragDrop(Point point);
+	void FinishDragDrop(BlockTextView& text_view);
 
 	// input
 private:

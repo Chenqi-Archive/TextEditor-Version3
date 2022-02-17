@@ -50,10 +50,19 @@ size_t selection_begin = 0;
 size_t selection_range_begin = 0;
 size_t selection_range_end = 0;
 
-std::vector<TextBlockHitTestInfo> selection_info;
+std::vector<TextBlock::HitTestInfo> selection_info;
 Rect selection_region_union;
 
 bool HasSelection() { return selection_range_end > selection_range_begin; }
+
+// drag and drop
+constexpr float drag_drop_caret_width = 1.0f;
+constexpr Color drag_drop_caret_color = Color::DimGray;
+
+bool drag_drop = false;
+ref_ptr<BlockTextView> drag_drop_focus = nullptr;
+size_t drag_drop_caret_position = 0;
+Rect drag_drop_caret_region = region_empty;
 
 // ime
 size_t ime_composition_begin = 0;
@@ -103,6 +112,9 @@ void BlockTextView::OnDraw(FigureQueue& figure_queue, Rect draw_region) {
 			figure_queue.add(region.point, new Rectangle(region.size, selection_color));
 		}
 	}
+	if (drag_drop_focus == this) {
+		figure_queue.add(drag_drop_caret_region.point, new Rectangle(drag_drop_caret_region.size, drag_drop_caret_color));
+	}
 }
 
 void BlockTextView::RedrawCaretRegion() {
@@ -147,21 +159,12 @@ void BlockTextView::ActivateCaret() {
 	}
 }
 
-void BlockTextView::SetCaretFocus(Rect region) {
-	if (IsCaretVisible()) { RedrawCaretRegion(); }
-	caret_focus = this; caret_region = region;
-}
-
 void BlockTextView::SetCaret(const HitTestInfo& info) {
-	caret_position = info.text_position;
-	Point point = info.geometry_region.point;
-	Size size = Size(caret_width, info.geometry_region.size.height);
-	if (info.is_trailing_hit) {
-		caret_position += info.text_length;
-		point.x += info.geometry_region.size.width;
-	}
 	ClearSelection();
-	SetFocus(); SetCaretFocus(Rect(point, size)); ShowCaret();
+	if (IsCaretVisible()) { RedrawCaretRegion(); }
+	caret_focus = this; caret_position = info.text_position;
+	caret_region = Rect(info.geometry_region.point, Size(caret_width, info.geometry_region.size.height));
+	SetFocus(); ShowCaret();
 }
 
 void BlockTextView::SetCaret(Point point) {
@@ -222,6 +225,13 @@ void BlockTextView::ClearSelection() {
 	}
 }
 
+bool BlockTextView::HitTestSelection(Point point) {
+	if (caret_focus == this && HasSelection()) {
+		for (auto& it : selection_info) { if (it.geometry_region.Contains(point)) { return true; } }
+	}
+	return false;
+}
+
 void BlockTextView::UpdateSelectionRegion(size_t begin, size_t end) {
 	HideCaret();
 	RedrawSelectionRegion();
@@ -252,6 +262,43 @@ void BlockTextView::DoSelect(Point point) {
 	size_t begin = selection_begin, end = caret_position; if (end < begin) { std::swap(begin, end); }
 	if (selection_range_begin == begin && selection_range_end == end) { return; }
 	UpdateSelectionRegion(begin, end);
+}
+
+void BlockTextView::RedrawDragDropCaretRegion() {
+	if (drag_drop_focus) { drag_drop_focus->Redraw(drag_drop_caret_region); }
+}
+
+ref_ptr<BlockView> BlockTextView::DoDragDrop(Point point) {
+	RedrawDragDropCaretRegion();
+	HitTestInfo info = text_block.HitTestPoint(point);
+	if (caret_focus == this && selection_range_begin <= info.text_position && info.text_position <= selection_range_end) {
+		drag_drop_focus = nullptr;
+		return nullptr;
+	} else {
+		drag_drop_focus = this; drag_drop_caret_position = info.text_position;
+		drag_drop_caret_region = Rect(info.geometry_region.point, Size(caret_width, info.geometry_region.size.height));
+		RedrawDragDropCaretRegion();
+		return &block_view;
+	}
+}
+
+void BlockTextView::FinishDragDrop(BlockTextView& text_view) {
+	size_t selection_length = selection_range_end - selection_range_begin;
+	if (&text_view == this) {
+		if (drag_drop_caret_position < selection_range_begin) {
+			std::rotate(text.begin() + drag_drop_caret_position, text.begin() + selection_range_begin, text.begin() + selection_range_end);
+		} else {
+			std::rotate(text.begin() + selection_range_begin, text.begin() + selection_range_end, text.begin() + drag_drop_caret_position);
+		}
+		TextUpdated();
+	} else {
+		std::wstring str = text_view.text.substr(selection_range_begin, selection_length);
+		InsertText(drag_drop_caret_position, str);
+		text_view.DeleteText(selection_range_begin, selection_length);
+	}
+	SetCaret(drag_drop_caret_position + caret_position - selection_range_begin);
+	UpdateSelectionRegion(drag_drop_caret_position, drag_drop_caret_position + selection_length);
+	RedrawDragDropCaretRegion(); drag_drop_focus = nullptr;
 }
 
 void BlockTextView::Insert(wchar ch) {
@@ -361,8 +408,9 @@ void BlockTextView::Paste() {
 
 void BlockTextView::OnMouseMsg(MouseMsg msg) {
 	switch (mouse_tracker.Track(msg)) {
-	case MouseTrackMsg::LeftDown: SetCaret(msg.point); break;
-	case MouseTrackMsg::LeftDrag: mouse_tracker.is_mouse_down = false; block_view.BeginSelect(); HideCaret(); break;
+	case MouseTrackMsg::LeftDown: if (HitTestSelection(msg.point)) { drag_drop = true; } else { SetCaret(msg.point); } break;
+	case MouseTrackMsg::LeftDrag: mouse_tracker.is_mouse_down = false; drag_drop ? block_view.BeginTextDragDrop() : block_view.BeginSelect(); break;
+	case MouseTrackMsg::LeftClick: if (drag_drop) { drag_drop = false; SetCaret(msg.point); } break;
 	case MouseTrackMsg::LeftDoubleClick: SelectWord(); break;
 	case MouseTrackMsg::LeftTripleClick: SelectAll(); break;
 	}
@@ -411,7 +459,7 @@ void BlockTextView::OnKeyMsg(KeyMsg msg) {
 void BlockTextView::OnNotifyMsg(NotifyMsg msg) {
 	switch (msg) {
 	case NotifyMsg::MouseLeave: mouse_tracker.is_mouse_down = false; break;
-	case NotifyMsg::LoseFocus: block_view.ClearSelection(); HideCaret(); break;
+	case NotifyMsg::LoseFocus: drag_drop = false; is_ctrl_down = false; HideCaret(); break;
 	}
 }
 
