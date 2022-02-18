@@ -30,13 +30,19 @@ void RootBlockView::DoSelect(Point point) {
 }
 
 void RootBlockView::BeginDragDrop(BlockView& block_view) {
-	drag_drop = true; drag_drop_src = &block_view;
-	SetFocus(); SetCapture();
+	drag_drop = true; drag_drop_src = &block_view; drag_drop_dest = nullptr;
+	SetCapture();
+}
+
+void RootBlockView::CancelDragDrop() {
+	drag_drop = false;
+	ReleaseCapture();
 }
 
 void RootBlockView::DoDragDrop(Point point) {
 	if (drag_drop_src != nullptr) {
-		drag_drop_dest = BlockView::DoDragDrop(point);
+		ref_ptr<BlockView> drag_drop_dest_curr = BlockView::DoDragDrop(point);
+		if (drag_drop_dest_curr != nullptr) { drag_drop_dest = drag_drop_dest_curr; }
 	}
 }
 
@@ -47,24 +53,10 @@ void RootBlockView::FinishDragDrop() {
 	CancelDragDrop();
 }
 
-void RootBlockView::CancelDragDrop() {
-	drag_drop = false; drag_drop_src = nullptr; drag_drop_dest = nullptr;
-	ReleaseCapture();
-}
-
 void RootBlockView::OnMouseMsg(MouseMsg msg) {
 	switch (msg.type) {
 	case MouseMsg::Move: drag_drop ? DoDragDrop(msg.point) : DoSelect(msg.point); break;
 	case MouseMsg::LeftUp: if (drag_drop) { FinishDragDrop(); } else { ReleaseCapture(); } break;
-	}
-}
-
-void RootBlockView::OnKeyMsg(KeyMsg msg) {
-	switch (msg.type) {
-	case KeyMsg::KeyDown:
-		switch (msg.key) {
-		case Key::Escape: if (drag_drop) { CancelDragDrop(); } break;
-		}
 	}
 }
 

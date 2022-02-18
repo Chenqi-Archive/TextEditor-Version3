@@ -57,6 +57,7 @@ public:
 	void BeginListDragDrop();
 	ref_ptr<BlockView> DoDragDrop(Point point);
 	void FinishDragDrop(BlockView& block_view);
+	void CancelDragDrop();
 
 	// input
 public:

@@ -273,22 +273,23 @@ ref_ptr<BlockView> BlockTextView::DoDragDrop(Point point) {
 	HitTestInfo info = text_block.HitTestPoint(point);
 	if (caret_focus == this && selection_range_begin <= info.text_position && info.text_position <= selection_range_end) {
 		drag_drop_focus = nullptr;
-		return nullptr;
 	} else {
 		drag_drop_focus = this; drag_drop_caret_position = info.text_position;
-		drag_drop_caret_region = Rect(info.geometry_region.point, Size(caret_width, info.geometry_region.size.height));
+		drag_drop_caret_region = Rect(info.geometry_region.point, Size(drag_drop_caret_width, info.geometry_region.size.height));
 		RedrawDragDropCaretRegion();
-		return &block_view;
 	}
+	return &block_view;
 }
 
 void BlockTextView::FinishDragDrop(BlockTextView& text_view) {
+	if (drag_drop_focus == nullptr) { return; }
 	size_t selection_length = selection_range_end - selection_range_begin;
 	if (&text_view == this) {
 		if (drag_drop_caret_position < selection_range_begin) {
 			std::rotate(text.begin() + drag_drop_caret_position, text.begin() + selection_range_begin, text.begin() + selection_range_end);
 		} else {
 			std::rotate(text.begin() + selection_range_begin, text.begin() + selection_range_end, text.begin() + drag_drop_caret_position);
+			drag_drop_caret_position -= selection_length;
 		}
 		TextUpdated();
 	} else {
@@ -298,7 +299,13 @@ void BlockTextView::FinishDragDrop(BlockTextView& text_view) {
 	}
 	SetCaret(drag_drop_caret_position + caret_position - selection_range_begin);
 	UpdateSelectionRegion(drag_drop_caret_position, drag_drop_caret_position + selection_length);
-	RedrawDragDropCaretRegion(); drag_drop_focus = nullptr;
+	RedrawDragDropCaretRegion(); drag_drop = false; drag_drop_focus = nullptr;
+}
+
+void BlockTextView::CancelDragDrop() {
+	RedrawDragDropCaretRegion();
+	drag_drop = false; drag_drop_focus = nullptr;
+	block_view.CancelDragDrop();
 }
 
 void BlockTextView::Insert(wchar ch) {
@@ -432,6 +439,8 @@ void BlockTextView::OnKeyMsg(KeyMsg msg) {
 		case Key::Backspace: Delete(true); break;
 		case Key::Delete: Delete(false); break;
 
+		case Key::Escape: if (drag_drop) { CancelDragDrop(); } break;
+
 		case Key::Ctrl: is_ctrl_down = true; break;
 
 		case CharKey('A'): if (is_ctrl_down) { SelectAll(); } break;
@@ -459,7 +468,7 @@ void BlockTextView::OnKeyMsg(KeyMsg msg) {
 void BlockTextView::OnNotifyMsg(NotifyMsg msg) {
 	switch (msg) {
 	case NotifyMsg::MouseLeave: mouse_tracker.is_mouse_down = false; break;
-	case NotifyMsg::LoseFocus: drag_drop = false; is_ctrl_down = false; HideCaret(); break;
+	case NotifyMsg::LoseFocus: drag_drop = false; is_ctrl_down = false; ClearSelection(); HideCaret(); break;
 	}
 }
 

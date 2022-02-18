@@ -23,7 +23,7 @@ BlockView::BlockView(BlockView& parent, std::wstring text) : PairView{
 		text_view = new BlockTextView(*this, text)
 	},
 	new PaddingFrame{
-		Padding(10px, 0, 0, 0),
+		Padding(20px, 5px, 0, 5px),
 		list_view = new BlockListView(*this)
 	}
 }, root(parent.root), parent(&parent) {
@@ -101,6 +101,10 @@ ref_ptr<BlockView> BlockView::DoDragDrop(Point point) {
 
 void BlockView::FinishDragDrop(BlockView& block_view) {
 	drag_drop_text ? text_view->FinishDragDrop(*block_view.text_view) : list_view->FinishDragDrop(*block_view.list_view);
+}
+
+void BlockView::CancelDragDrop() {
+	root->CancelDragDrop();
 }
 
 void BlockView::InsertFront(std::wstring text) {

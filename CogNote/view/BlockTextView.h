@@ -93,6 +93,7 @@ private:
 public:
 	ref_ptr<BlockView> DoDragDrop(Point point);
 	void FinishDragDrop(BlockTextView& text_view);
+	void CancelDragDrop();
 
 	// input
 private:

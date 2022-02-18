@@ -28,6 +28,7 @@ public:
 	// layout
 private:
 	virtual Size OnSizeRefUpdate(Size size_ref) override;
+	virtual ref_ptr<WndObject> HitTest(Point& point) override;
 
 	// paint
 private:
@@ -49,10 +50,13 @@ public:
 	void DoSelect(Point point);
 
 	// drag and drop
+private:
+	static void RedrawDragDropCaretRegion();
 public:
 	ref_ptr<BlockView> DoTextDragDrop(Point point);
 	ref_ptr<BlockView> DoDragDrop(Point point);
 	void FinishDragDrop(BlockListView& list_view);
+	void CancelDragDrop();
 
 	// input
 private:
@@ -80,6 +84,7 @@ private:
 
 	// message
 private:
+	virtual void OnMouseMsg(MouseMsg msg) override;
 	virtual void OnKeyMsg(KeyMsg msg) override;
 	virtual void OnNotifyMsg(NotifyMsg msg) override;
 };

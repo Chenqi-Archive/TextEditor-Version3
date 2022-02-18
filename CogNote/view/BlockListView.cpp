@@ -19,14 +19,24 @@ Rect selection_region;
 
 bool HasSelection() { return selection_range_end > selection_range_begin; }
 
+// drag and drop
+constexpr float drag_drop_caret_height = 1.0f;
+constexpr Color drag_drop_caret_color = Color::DimGray;
+
+bool drag_drop = false;
+ref_ptr<BlockListView> drag_drop_focus = nullptr;
+size_t drag_drop_caret_position = 0;
+Rect drag_drop_caret_region = region_empty;
+
 // message
 bool is_ctrl_down = false;
 bool is_shift_down = false;
+bool is_mouse_down = false;
 
 END_NAMESPACE(Anonymous)
 
 
-BlockListView::BlockListView(BlockView& block_view) : ListLayout(0.0f), block_view(block_view) {}
+BlockListView::BlockListView(BlockView& block_view) : ListLayout(5.0f), block_view(block_view) {}
 
 BlockListView::~BlockListView() {}
 
@@ -51,10 +61,18 @@ Size BlockListView::OnSizeRefUpdate(Size size_ref) {
 	return size;
 }
 
+ref_ptr<WndObject> BlockListView::HitTest(Point& point) {
+	if (selection_focus == this && HitTestSelection(point)) { return this; }
+	return ListLayout::HitTest(point);
+}
+
 void BlockListView::OnDraw(FigureQueue& figure_queue, Rect draw_region) {
 	ListLayout::OnDraw(figure_queue, draw_region);
 	if (selection_focus == this && HasSelection()) {
 		figure_queue.add(selection_region.point, new Rectangle(selection_region.size, selection_color));
+	}
+	if (drag_drop_focus == this) {
+		figure_queue.add(drag_drop_caret_region.point, new Rectangle(drag_drop_caret_region.size, drag_drop_caret_color));
 	}
 }
 
@@ -93,7 +111,7 @@ void BlockListView::SelectChild(BlockView& child) {
 }
 
 void BlockListView::DoSelect(Point point) {
-	auto it = HitTestItem(point.y);
+	auto it = point.y < 0.0f ? child_list.begin() : HitTestItem(point.y);
 	size_t index = it - child_list.begin();
 	if (selection_begin == index) {
 		point.y -= it->offset;
@@ -105,16 +123,56 @@ void BlockListView::DoSelect(Point point) {
 	}
 }
 
+void BlockListView::RedrawDragDropCaretRegion() {
+	if (drag_drop_focus) { drag_drop_focus->Redraw(drag_drop_caret_region); }
+}
+
 ref_ptr<BlockView> BlockListView::DoTextDragDrop(Point point) {
-	auto it = HitTestItem(point.y); point.y -= it->offset;
+	if (child_list.empty()) { return nullptr; }
+	auto it = point.y < 0.0f ? child_list.begin() : HitTestItem(point.y); point.y -= it->offset;
 	return AsBlockView(it->child).DoDragDrop(point);
 }
 
 ref_ptr<BlockView> BlockListView::DoDragDrop(Point point) {
-	return ref_ptr<BlockView>();
+	RedrawDragDropCaretRegion();
+	if (selection_focus == this && HitTestSelection(point)) {
+		drag_drop_focus = nullptr;
+		return &block_view;
+	}
+	if (child_list.empty() || point.y < 0.0f) {
+		if (selection_focus == this && selection_range_begin == 0) { drag_drop_focus = nullptr; return &block_view; }
+		drag_drop_focus = this; drag_drop_caret_position = 0;
+		drag_drop_caret_region = Rect(Point(0.0f, -drag_drop_caret_height), Size(size.width, drag_drop_caret_height));
+		RedrawDragDropCaretRegion();
+		return &block_view;
+	}
+	auto it = HitTestItem(point.y); point.y -= it->offset;
+	if (point.y >= it->length) {
+		drag_drop_caret_position = it - child_list.begin() + 1;
+		if (selection_focus == this && selection_range_begin <= drag_drop_caret_position && drag_drop_caret_position <= selection_range_end) {
+			drag_drop_focus = nullptr; return &block_view;
+		}
+		drag_drop_focus = this;
+		drag_drop_caret_region = Rect(Point(0.0f, it->EndOffset()), Size(size.width, drag_drop_caret_height));
+		RedrawDragDropCaretRegion();
+		return &block_view;
+	}
+	return AsBlockView(it->child).DoDragDrop(point);
 }
 
 void BlockListView::FinishDragDrop(BlockListView& list_view) {
+	if (drag_drop_focus == nullptr) { return; }
+	size_t selection_length = selection_range_end - selection_range_begin;
+	if (&list_view == this && drag_drop_caret_position > selection_range_end) { drag_drop_caret_position -= selection_length; }
+	InsertAt(drag_drop_caret_position, list_view.ExtractChild(selection_range_begin, selection_range_end));
+	UpdateSelectionRegion(drag_drop_caret_position, drag_drop_caret_position + selection_length);
+	RedrawDragDropCaretRegion(); drag_drop = false; drag_drop_focus = nullptr;
+}
+
+void BlockListView::CancelDragDrop() {
+	RedrawDragDropCaretRegion();
+	drag_drop = false; drag_drop_focus = nullptr;
+	block_view.CancelDragDrop();
 }
 
 void BlockListView::Insert(wchar ch) {
@@ -168,6 +226,14 @@ void BlockListView::Copy() {
 void BlockListView::Paste() {
 }
 
+void BlockListView::OnMouseMsg(MouseMsg msg) {
+	switch (msg.type) {
+	case MouseMsg::LeftDown: is_mouse_down = true; drag_drop = true; break;
+	case MouseMsg::Move: if (is_mouse_down) { is_mouse_down = false; block_view.BeginListDragDrop(); }; break;
+	case MouseMsg::LeftUp: if (is_mouse_down) { is_mouse_down = false; drag_drop = false; ClearSelection(); } break;
+	}
+}
+
 void BlockListView::OnKeyMsg(KeyMsg msg) {
 	switch (msg.type) {
 	case KeyMsg::KeyDown:
@@ -176,6 +242,8 @@ void BlockListView::OnKeyMsg(KeyMsg msg) {
 		case Key::Delete: Delete(); break;
 
 		case Key::Tab: OnTab(); break;
+
+		case Key::Escape: if (drag_drop) { CancelDragDrop(); } break;
 
 		case Key::Ctrl: is_ctrl_down = true; break;
 		case Key::Shift: is_shift_down = true; break;
@@ -201,7 +269,7 @@ void BlockListView::OnKeyMsg(KeyMsg msg) {
 
 void BlockListView::OnNotifyMsg(NotifyMsg msg) {
 	switch (msg) {
-	case NotifyMsg::LoseFocus: is_ctrl_down = false; is_shift_down = false; block_view.ClearSelection(); break;
+	case NotifyMsg::LoseFocus: drag_drop = false; is_ctrl_down = false; is_shift_down = false; block_view.ClearSelection(); break;
 	}
 }
 
